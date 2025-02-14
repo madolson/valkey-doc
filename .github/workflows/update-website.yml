@@ -1,0 +1,7 @@
+name: Trigger master website deploy
+on:
+  push
+
+jobs:
+  call-workflow-1-in-local-repo:
+    uses: valkey-io/valkey-io.github.io/.github/workflows/deploy-zola.yml@test
