@@ -57,8 +57,8 @@ Debian/Ubuntu/Mint/Devuan/Raspbian/PureOS
 ```bash
 sudo apt update
 sudo apt install valkey
-# For symlinked binaries to redis-cli and redis-server
-sudo apt install valkey-compat
+# For symlinked binaries to redis-cli and other redis-* tools (on Ubuntu)
+sudo apt install valkey-redis-compat
 ```
 
 #### apk (Alpine Linux/Kali Linux/Wolfi)
@@ -78,7 +78,7 @@ sudo apk add valkey-compat
 ```bash
 sudo yum install valkey
 # For symlinked binaries to redis-cli and redis-server
-sudo yum install valkey-compat
+sudo yum install valkey-compat-redis
 # For valkey-doc (can be used with man, e.g. `man hgetall`, `man valkey.conf`, etc.)
 sudo yum install valkey-doc
 ```
@@ -91,7 +91,7 @@ You can use the EPEL repository - https://fedoraproject.org/wiki/EPEL to install
 ```bash
 sudo dnf install valkey
 # For symlinked binaries to redis-cli and redis-server
-sudo dnf install valkey-compat
+sudo dnf install valkey-compat-redis
 # For valkey-doc (can be used with man, e.g. `man hgetall`, `man valkey.conf`, etc.)
 sudo dnf install valkey-doc
 ```
@@ -120,7 +120,7 @@ cave resolve -x dev-db/valkey
 #### Miscellaneous
 
 Available on [SlackBuilds](https://slackbuilds.org/repository/15.0/system/valkey/)
-and openpkg on [OpenPKG](https://openpkg.com/).
+and openpkg on [OpenPKG](http://www.openpkg.org/).
 
 ### Windows
 
@@ -160,7 +160,7 @@ By default Valkey binds to **all the interfaces** and has no authentication at a
 1. Make sure the port Valkey uses to listen for connections (by default 6379 and additionally 16379 if you run Valkey in cluster mode, plus 26379 for Sentinel) is firewalled, so that it is not possible to contact Valkey from the outside world.
 2. Use a configuration file where the `bind` directive is set in order to guarantee that Valkey listens on only the network interfaces you are using. For example, only the loopback interface (127.0.0.1) if you are accessing Valkey locally from the same computer.
 3. Set up authentication using [Access Control List (ACL)](acl.md) or use the `requirepass` option to add an additional layer of security so that clients will be required to authenticate using the `AUTH` command.
-4. Use [TLS](encryption.md) to encrypt traffic between Valkey servers and Valkey clients if your environment requires encryption.
+4. Use [TLS](tls.md) to encrypt traffic between Valkey servers and Valkey clients if your environment requires encryption.
 
 Make sure you understand the above and apply **at least** a firewall layer. After the firewall is in place, try to connect with `valkey-cli` from an external host to confirm that the instance is not reachable.
 

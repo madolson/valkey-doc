@@ -1,5 +1,5 @@
 ---
-title: "Releases and versioning"
+title: "Releases and versioning schema"
 description: How new versions of Valkey are released and supported
 ---
 
@@ -94,9 +94,12 @@ For contacting the TSC on sensitive matters and security issues, please see [SEC
 
 ### List of supported versions
 
-| Version | Initial release | Maintenance support end | Extended Security support end |
+| Version | Initial release | Maintenance support end | Security support end |
 | -- | -- | -- | -- |
-| 8.0 | 2024-09-15 | 2027-09-15 | N/A |
+| 9.1 | 2026-05-19 | 2029-05-19 | 2031-05-19 |
+| 9.0 | 2025-10-21 | 2028-10-21 | 2028-10-21 |
+| 8.1 | 2025-03-31 | 2028-03-31 | 2030-03-31 |
+| 8.0 | 2024-09-15 | 2027-09-15 | 2027-09-15 |
 | 7.2 | 2024-04-16 | 2027-04-16 | 2029-04-16 |
 
 ## Unstable tree

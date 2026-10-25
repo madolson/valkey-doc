@@ -121,6 +121,7 @@ mem_fragmentation_bytes:8504448
 mem_not_counted_for_evict:0
 mem_replication_backlog:0
 mem_total_replication_buffers:0
+mem_replicas_repl_buffer:0
 mem_clients_slaves:0
 mem_clients_normal:0
 mem_cluster_links:0
@@ -226,10 +227,12 @@ acl_access_denied_auth:0
 acl_access_denied_cmd:0
 acl_access_denied_key:0
 acl_access_denied_channel:0
+acl_access_denied_tls_cert:0
 
 # Replication
 role:master
 connected_slaves:0
+replicas_waiting_psync:0
 master_failover_state:no-failover
 master_replid:488d931b7e08f8e091f674ea64480165971a25f1
 master_replid2:0000000000000000000000000000000000000000
@@ -247,6 +250,7 @@ used_cpu_sys_children:0.003157
 used_cpu_user_children:0.008264
 used_cpu_sys_main_thread:68.478353
 used_cpu_user_main_thread:219.404508
+used_active_time_main_thread:192.003980
 
 # Modules
 
@@ -272,6 +276,8 @@ Here is the description of fields.
 Here is the meaning of all fields in the **server** section:
 
 *   `redis_version`: Redis OSS version this Valkey server is compatible with
+*   `valkey_version`: Valkey version number (e.g. 7.2.5)
+*   `valkey_release_stage`: The status of the Valkey version: "ga" for generally available versions; "rc1", "rc2", etc. for release candidates; "dev" for development versions. Added in 8.1.
 *   `redis_git_sha1`:  Git SHA1
 *   `redis_git_dirty`: Git dirty flag
 *   `redis_build_id`: The build id
@@ -311,16 +317,16 @@ Here is the meaning of all fields in the **clients** section:
     `cluster_connections`.
 *   `client_recent_max_input_buffer`: Biggest input buffer among current client connections
 *   `client_recent_max_output_buffer`: Biggest output buffer among current client connections
-*   `blocked_clients`: Number of clients pending on a blocking call (`BLPOP`,
-     `BRPOP`, `BRPOPLPUSH`, `BLMOVE`, `BZPOPMIN`, `BZPOPMAX`)
-*   `tracking_clients`: Number of clients being tracked (`CLIENT TRACKING`)
-*   `pubsub_clients`: Number of clients in pubsub mode (`SUBSCRIBE`, `PSUBSCRIBE`, `SSUBSCRIBE`). Added in Valkey 8.0
-*   `watching_clients`: Number of clients in watching mode (`WATCH`). Added in Valkey 8.0
+*   `blocked_clients`: Number of clients pending on a blocking call ([`BLPOP`](blpop.md)),
+     [`BRPOP`](brpop.md), [`BRPOPLPUSH`](brpoplpush.md), [`BLMOVE`](blmove.md), [`BZPOPMIN`](bzpopmin.md), [`BZPOPMAX`](bzpopmax.md))
+*   `tracking_clients`: Number of clients being tracked ([`CLIENT TRACKING`](client-tracking.md))
+*   `pubsub_clients`: Number of clients in pubsub mode ([`SUBSCRIBE`](subscribe.md), [`PSUBSCRIBE`](psubscribe.md), [`SSUBSCRIBE`](ssubscribe.md)). Added in Valkey 8.0
+*   `watching_clients`: Number of clients in watching mode ([`WATCH`](watch.md)). Added in Valkey 8.0
 *   `clients_in_timeout_table`: Number of clients in the clients timeout table
 *   `total_watched_keys`: Number of watched keys. Added in Valkey 8.0.
 *   `total_blocking_keys`: Number of blocking keys.
 *   `total_blocking_keys_on_nokey`: Number of blocking keys that one or more clients that would like to be unblocked when the key is deleted.
-*   `paused_reason`: The current paused reason of the instance: "client_pause" means trigger by `CLIENT PAUSE`,
+*   `paused_reason`: The current paused reason of the instance: "client_pause" means trigger by [`CLIENT PAUSE`](client-pause.md),
     "shutdown_in_progress", "failover_in_progress" and "none" means no clients are paused. Added in Valkey 8.1.
 *   `paused_actions`: The current paused actions of the instance: "all" means all clients are paused,
     "write" means clients executing write commands are paused,
@@ -380,7 +386,7 @@ Here is the meaning of all fields in the **memory** section:
 *   `rss_overhead_bytes`: Delta between `used_memory_rss` (the process RSS) and `allocator_resident`
 *   `allocator_allocated`: Total bytes allocated form the allocator, including internal-fragmentation. Normally the same as `used_memory`.
 *   `allocator_active`: Total bytes in the allocator active pages, this includes external-fragmentation.
-*   `allocator_resident`: Total bytes resident (RSS) in the allocator, this includes pages that can be released to the OS (by `MEMORY PURGE`, or just waiting).
+*   `allocator_resident`: Total bytes resident (RSS) in the allocator, this includes pages that can be released to the OS (by [`MEMORY PURGE`](memory-purge.md), or just waiting).
 *   `allocator_muzzy`: Total bytes of 'muzzy' memory (RSS) in the allocator. Muzzy memory is memory that has been freed, but not yet fully returned to the operating system. It can be reused immediately when needed or reclaimed by the OS when system pressure increases.
 *   `mem_not_counted_for_evict`: Used memory that's not counted for key eviction. This is basically transient replica and AOF buffers.
 *   `mem_clients_slaves`: Memory used by replica clients - Replica buffers share memory with the replication backlog, so this field can show 0 when replicas don't trigger an increase of memory usage.
@@ -388,12 +394,13 @@ Here is the meaning of all fields in the **memory** section:
 *   `mem_cluster_links`: Memory used by links to peers on the cluster bus when cluster mode is enabled.
 *   `mem_aof_buffer`: Transient memory used for AOF and AOF rewrite buffers
 *   `mem_replication_backlog`: Memory used by replication backlog
-*   `mem_total_replication_buffers`: Total memory consumed for replication buffers.
+*   `mem_total_replication_buffers`: Total memory consumed for replication buffers. Starting with Valkey 9.1, it also includes `mem_replicas_repl_buffer`.
+*   `mem_replicas_repl_buffer`: Total memory consumed by the replicas replication buffer on replica side during the dual channel replication. Added in Valkey 9.1.
 *   `mem_allocator`: Memory allocator, chosen at compile time.
 *   `mem_overhead_db_hashtable_rehashing`: Temporary memory overhead of database dictionaries currently being rehashed - Added in 8.0.
 *   `active_defrag_running`: When `activedefrag` is enabled, this indicates whether defragmentation is currently active, and the CPU percentage it intends to utilize.
 *   `lazyfree_pending_objects`: The number of objects waiting to be freed (as a
-     result of calling `UNLINK`, or `FLUSHDB` and `FLUSHALL` with the **ASYNC**
+     result of calling [`UNLINK`](unlink.md), or [`FLUSHDB`](flushdb.md) and [`FLUSHALL`](flushall.md) with the **ASYNC**
      option)
 *   `lazyfreed_objects`: The number of objects that have been lazy freed.
 
@@ -416,7 +423,7 @@ used and released by Valkey, but not given back to the system. The
 `used_memory_peak` value is generally useful to check this point.
 
 Additional introspective information about the server's memory can be obtained
-by referring to the `MEMORY STATS` command and the `MEMORY DOCTOR`.
+by referring to the [`MEMORY STATS`](memory-stats.md) command and the [`MEMORY DOCTOR`](memory-doctor.md).
 
 Here is the meaning of all fields in the **persistence** section:
 
@@ -460,8 +467,8 @@ Here is the meaning of all fields in the **persistence** section:
 *   `rdb_saves`: Number of RDB snapshots performed since startup
 
 `rdb_changes_since_last_save` refers to the number of operations that produced
-some kind of changes in the dataset since the last time either `SAVE` or
-`BGSAVE` was called.
+some kind of changes in the dataset since the last time either [`SAVE`](save.md) or
+[`BGSAVE`](bgsave.md) was called.
 
 If AOF is activated, these additional fields will be added:
 
@@ -510,7 +517,7 @@ Here is the meaning of all fields in the **stats** section:
 *   `expire_cycle_cpu_milliseconds`: The cumulative amount of time spent on active expiry cycles
 *   `evicted_keys`: Number of evicted keys due to `maxmemory` limit
 *   `evicted_clients`: Number of evicted clients due to `maxmemory-clients` limit.
-*   `evicted_scripts`: Number of evicted EVAL scripts due to LRU policy, see `EVAL` for more details. Added in Valkey 8.0.
+*   `evicted_scripts`: Number of evicted EVAL scripts due to LRU policy, see [`EVAL`](eval.md) for more details. Added in Valkey 8.0.
 *   `total_eviction_exceeded_time`:  Total time `used_memory` was greater than `maxmemory` since server startup, in milliseconds
 *   `current_eviction_exceeded_time`: The time passed since `used_memory` last rose above `maxmemory`, in milliseconds
 *   `keyspace_hits`: Number of successful lookup of keys in the main dictionary
@@ -566,20 +573,21 @@ Here is the meaning of all fields in the **stats** section:
 *   `acl_access_denied_cmd`: Number of commands rejected because of access denied to the command
 *   `acl_access_denied_key`: Number of commands rejected because of access denied to a key
 *   `acl_access_denied_channel`: Number of commands rejected because of access denied to a channel 
+*   `acl_access_denied_tls_cert`: Number of failed authentications using automatic TLS clients authentication feature. Added in Valkey 9.0.
 
 Here is the meaning of all fields in the **replication** section:
 
 *   `role`: Value is "master" if the instance is replica of no one, or "slave" if the instance is a replica of some primary instance.
      Note that a replica can be primary of another replica (chained replication).
+*   `replicas_waiting_psync`: The number of replicas waiting for partial resynchronization during the dual-channel replication. Added in Valkey 8.0.
 *   `master_failover_state`: The state of an ongoing failover, if any.
 *   `master_replid`: The replication ID of the Valkey server.
 *   `master_replid2`: The secondary replication ID, used for PSYNC after a failover.
 *   `master_repl_offset`: The server's current replication offset
 *   `second_repl_offset`: The offset up to which replication IDs are accepted
 *   `repl_backlog_active`: Flag indicating replication backlog is active
-*   `repl_backlog_size`: Total size in bytes of the replication backlog buffer
-*   `repl_backlog_first_byte_offset`: The primary offset of the replication
-     backlog buffer
+*   `repl_backlog_size`: The value of the replication backlog buffer `repl-backlog-size` configuration item
+*   `repl_backlog_first_byte_offset`: Replication "primary offset" of first byte in the replication backlog buffer
 *   `repl_backlog_histlen`: Size in bytes of the data in the replication backlog
      buffer
 
@@ -590,9 +598,12 @@ If the instance is a replica, these additional fields are provided:
 *   `master_link_status`: Status of the link (up/down)
 *   `master_last_io_seconds_ago`: Number of seconds since the last interaction
      with primary
+*   `last_successful_sync_duration_ms`: The duration of the last successful full sync in milliseconds, or -1 if no successful sync has occurred
 *   `master_sync_in_progress`: Indicate the primary is syncing to the replica
 *   `slave_read_repl_offset`: The read replication offset of the replica instance.
 *   `slave_repl_offset`: The replication offset of the replica instance
+*   `replicas_repl_buffer_size`: Currently accumulated replication stream data in bytes during the dual-channel replication. Added in Valkey 8.0.
+*   `replicas_repl_buffer_peak`: Peak number of bytes accumulated replication stream data during the lifetime of this instance. Added in Valkey 8.0.
 *   `slave_priority`: The priority of the instance as a candidate for failover
 *   `slave_read_only`: Flag indicating if the replica is read-only
 *   `replica_announced`: Flag indicating if the replica is announced by Sentinel.
@@ -625,7 +636,21 @@ If the server is configured with the `min-replicas-to-write` directive, an addit
 
 For each replica, the following line is added:
 
-*   `slaveXXX`: id, IP address, port, state, offset, lag
+*   `slaveXXX:ip=xxx,port=xxx,state=xxx,offset=xxx,lag=xxx,type=xxx`
+
+`state` represents the state of the replica client and can be one of the following strings.
+
+*   `wait_bgsave`: The replica is waiting for the primary to generate the RDB file.
+*   `send_bulk`: Primary is sending the RDB file to replica.
+*   `online`: RDB file transmitted, sending just updates.
+*   `rdb_transmitted`: RDB file transmitted, this state is used for the rdb-channel during dual-channel replication when the RDB transfer is complete but the replica has not yet established its main connection. Added in Valkey 9.1.
+*   `bg_transfer`: Main channel of a replica during dual-channel replication. Changes to `online` once sync is complete. Added in Valkey 8.0.
+
+`type` added in Valkey 8.0, represents the type of the replica client and can be one of the following strings.
+
+*   `replica`: Normal replica client.
+*   `main-channel`: Main channel of a replica which uses dual-channel replication. Once dual channel replication is complete, the type will become `replica`.
+*   `rdb-channel`: RDB channel of a replica which uses dual-channel replication. Once dual channel replication is complete, the replica client will disconnect.
 
 Here is the meaning of all fields in the **cpu** section:
 
@@ -635,6 +660,22 @@ Here is the meaning of all fields in the **cpu** section:
 *   `used_cpu_user_children`: User CPU consumed by the background processes
 *   `used_cpu_sys_main_thread`: System CPU consumed by the Valkey server main thread
 *   `used_cpu_user_main_thread`: User CPU consumed by the Valkey server main thread
+*   `used_active_time_main_thread`: Clock time the Valkey server main thread has spent on actual work,
+    excluding time waiting for work.
+*   `used_active_time_io_thread_N` (where *N* is a number from 1 to the configured number of I/O threads):
+    Clock time each I/O thread spends doing actual work, excluding time waiting for work.
+
+The fields `used_active_time_main_thread` and `used_active_time_io_thread_N`
+were added in Valkey 9.1. They are a better indication than the CPU time metrics
+of the spare capacity of each thread, because Valkey uses busy-waiting when I/O
+threads are used, which makes the CPU time appear to be near 100% even if the
+server has spare capacity for handling more commands.
+
+The active time fields grow linearly with the server load. To understand how to
+interpret them, consider this example: If the main thread's used active time
+increases 5 seconds between two INFO calls 10 seconds apart, it means the main
+thread has spent half of the time executing commands and the other half waiting.
+It means that it's running at 50% of its capacity.
 
 The **commandstats** section provides statistics based on the command type,
  including the number of calls that reached command execution (not rejected),
@@ -653,7 +694,7 @@ The **latencystats** section provides latency percentile distribution statistics
  If you need to change the exported percentiles, use `CONFIG SET latency-tracking-info-percentiles "50.0 99.0 99.9"`.
 
  This section requires the extended latency monitoring feature to be enabled (by default it's enabled).
- If you need to enable it, use `CONFIG SET latency-tracking yes`.
+ If you need to enable it, use [`CONFIG SET latency-tracking yes`](config-set.md).
 
 For each command type, the following line is added:
 
@@ -671,6 +712,7 @@ The **sentinel** section is only available in Valkey Sentinel instances. It cons
 *   `sentinel_masters`: Number of Valkey primaries monitored by this Sentinel instance
 *   `sentinel_tilt`: A value of 1 means this sentinel is in TILT mode
 *   `sentinel_tilt_since_seconds`: Duration in seconds of current TILT, or -1 if not TILTed.
+*   `sentinel_total_tilt`: The number of times this sentinel has been in TILT mode since running. Added in 9.0.
 *   `sentinel_running_scripts`: The number of scripts this Sentinel is currently executing
 *   `sentinel_scripts_queue_length`: The length of the queue of user scripts that are pending execution
 *   `sentinel_simulate_failure_flags`: Flags for the `SENTINEL SIMULATE-FAILURE` command

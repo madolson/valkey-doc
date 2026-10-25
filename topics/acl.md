@@ -4,7 +4,7 @@ description: Valkey Access Control List
 ---
 
 The Valkey ACL, short for Access Control List, is a feature that allows certain connections to be limited in terms of the commands that can be executed and the keys that can be accessed.
-The way it works is that, after connecting, a client is required to provide a username and a valid password to authenticate.
+The way it works is that, after connecting, a client is required to either provide a username and a valid password, or a valid TLS certificate to authenticate.
 If authentication succeeded, the connection is associated with a given user and the limits the user has.
 Valkey can be configured so that new connections are already authenticated with a "default" user (this is the default configuration).
 Configuring the default user has, as a side effect, the ability to provide only a specific subset of functionalities to connections that are not explicitly authenticated.
@@ -59,8 +59,8 @@ for the users back into their description.
 The first two words in each line are "user" followed by the username. The
 next words are ACL rules that describe different things. We'll show how the rules work in detail, but for now it is enough to say that the default
 user is configured to be active (on), to require no password (nopass), to
-access every possible key (`~*`) and Pub/Sub channel (`&*`), and be able to
-call every possible command (`+@all`).
+access every possible key (`~*`) and Pub/Sub channel (`&*`), every
+database, and be able to call every possible command (`+@all`).
 
 Also, in the special case of the default user, having the *nopass* rule means
 that new connections are automatically authenticated with the default user
@@ -82,7 +82,7 @@ Enable and disallow users:
 Allow and disallow commands:
 
 * `+<command>`: Add the command to the list of commands the user can call. Can be used with `|` for allowing subcommands (e.g "+config|get").
-* `-<command>`: Remove the command to the list of commands the user can call. Starting Valkey 7.0, it can be used with `|` for blocking subcommands (e.g "-config|set").
+* `-<command>`: Remove the command to the list of commands the user can call. Starting Valkey 7.0, it can be used with `|` for blocking subcommands (e.g "-config|set"). Note that commands which do not require authentication cannot be removed, e.g. AUTH, HELLO, and RESET.
 * `+@<category>`: Add all the commands in such category to be called by the user, with valid categories being like @admin, @set, @sortedset, ... and so forth, see the full list by calling the `ACL CAT` command. The special category @all means all the commands, both the ones currently present in the server, and the ones that will be loaded in the future via modules.
 * `-@<category>`: Like `+@<category>` but removes the commands from the list of commands the client can call.
 * `+<command>|first-arg`: Allow a specific first argument of an otherwise disabled command. It is only supported on commands with no sub-commands, and is not allowed as negative form like -SELECT|1, only additive starting with "+". This feature is deprecated and may be removed in the future.
@@ -104,6 +104,15 @@ Allow and disallow Pub/Sub channels:
 * `allchannels`: Alias for `&*` that allows the user to access all Pub/Sub channels.
 * `resetchannels`: Flush the list of allowed channel patterns and disconnect the user's Pub/Sub clients if these are no longer able to access their respective channels and/or channel patterns.
 
+Allow and disallow logical databases:
+
+* `db=<id>[,<id>...]`: Sets the specified database id(s) as the databases the user is allowed to access.
+  Multiple ids are separated by commas, e.g. `db=0,1,2`; at least one id is required.
+  Clears the `alldbs` flag and any previously configured database ids on the selector.
+  See [database permissions](#database-permissions) for more information.
+* `alldbs`: Allow the user to access all databases. This is the default for newly created selectors and is omitted from generated ACL strings.
+* `resetdbs`: Flush the list of allowed databases and clear the `alldbs` flag. After `resetdbs`, the user (or selector) cannot access any database until additional `db=` rules or `alldbs` are added.
+
 Configure valid passwords for the user:
 
 * `><password>`: Add this password to the list of valid passwords for the user. For example `>mypass` will add "mypass" to the list of valid passwords.  This directive clears the *nopass* flag (see later). Every user can have any number of passwords.
@@ -111,9 +120,9 @@ Configure valid passwords for the user:
 * `#<hash>`: Add this SHA-256 hash value to the list of valid passwords for the user. This hash value will be compared to the hash of a password entered for an ACL user. This allows users to store hashes in the `acl.conf` file rather than storing cleartext passwords. Only SHA-256 hash values are accepted as the password hash must be 64 characters and only contain lowercase hexadecimal characters.
 * `!<hash>`: Remove this hash value from the list of valid passwords. This is useful when you do not know the password specified by the hash value but would like to remove the password from the user.
 * `nopass`: All the set passwords of the user are removed, and the user is flagged as requiring no password: it means that every password will work against this user. If this directive is used for the default user, every new connection will be immediately authenticated with the default user without any explicit AUTH command required. Note that the *resetpass* directive will clear this condition.
-* `resetpass`: Flushes the list of allowed passwords and removes the *nopass* status. After *resetpass*, the user has no associated passwords and there is no way to authenticate without adding some password (or setting it as *nopass* later).
+* `resetpass`: Flushes the list of allowed passwords and removes the *nopass* status. After *resetpass*, the user has no associated passwords and can only authenticate using client certificates, if `tls-auth-clients-user` is enabled.
 
-*Note: if a user is not flagged with nopass and has no list of valid passwords, that user is effectively impossible to use because there will be no way to log in as that user.*
+*Note: if a user is not flagged with nopass and has no list of valid passwords, that user is impossible to authenticate via password. Such users can still be authenticated through mTLS certificate fields if `tls-auth-clients-user` is enabled.*
 
 Configure selectors for the user:
 
@@ -122,7 +131,7 @@ Configure selectors for the user:
 
 Reset the user:
 
-* `reset` Performs the following actions: resetpass, resetkeys, resetchannels, allchannels (if acl-pubsub-default is set), off, clearselectors, -@all. The user returns to the same state it had immediately after its creation.
+* `reset` Performs the following actions: resetpass, resetkeys, resetchannels, allchannels (if acl-pubsub-default is set), resetdbs, alldbs, off, clearselectors, -@all. The user returns to the same state it had immediately after its creation.
 
 ## Create and edit user ACLs with the ACL SETUSER command
 
@@ -194,10 +203,12 @@ computers to read, while `ACL GETUSER` is more human readable.
     8) "~cached:*"
     9) "channels"
     10) ""
-    11) "selectors"
-    12) (empty array)
+    11) "databases"
+    12) "alldbs"
+    13) "selectors"
+    14) (empty array)
 
-The `ACL GETUSER` returns a field-value array that describes the user in more parsable terms. The output includes the set of flags, a list of key patterns, passwords, and so forth. The output is probably more readable if we use RESP3, so that it is returned as a map reply:
+The `ACL GETUSER` returns a field-value array that describes the user in more parsable terms. The output includes the set of flags, a list of key patterns, passwords, and so forth. New fields may be added over time. For example, Valkey 9.1 added the `databases` field. The output is probably more readable if we use RESP3, so that it is returned as a map reply:
 
     > ACL GETUSER alice
     1# "flags" => 1~ "on"
@@ -205,7 +216,8 @@ The `ACL GETUSER` returns a field-value array that describes the user in more pa
     3# "commands" => "-@all +get"
     4# "keys" => "~cached:*"
     5# "channels" => ""
-    6# "selectors" => (empty array)
+    6# "databases" => "alldbs"
+    7# "selectors" => (empty array)
 
 *Note: from now on, we'll continue using the Valkey default protocol, version 2*
 
@@ -360,8 +372,10 @@ That is true for all commands except DEBUG. In order to allow/block specific DEB
 Sometimes the ability to exclude or include a command or a subcommand as a whole is not enough.
 Many deployments may not be happy providing the ability to execute a `SELECT` for any DB, but may
 still want to be able to run `SELECT 0`.
+Database permissions are the preferred way to restrict which databases a user
+can access; see [database permissions](#database-permissions).
 
-In such case we could alter the ACL of a user in the following way:
+For versions without database permissions, we could alter the ACL of a user in the following way:
 
     ACL SETUSER myuser -select +select|0
 
@@ -436,6 +450,105 @@ For example, consider the following two commands:
 * `LPOP key2`: modifies "key2" but also returns data from it, the left most item in the list, so the command requires both read and write permission on "key2" to execute.
 
 If an application needs to make sure no data is accessed from a key, including side channels, it's recommended to not provide any access to the key.
+
+## Database permissions
+
+In addition to commands, keys, and Pub/Sub channels, ACL rules can restrict
+which databases (see [`SELECT`](../commands/select.md)) a user is
+allowed to access. By default a newly created selector has the `alldbs` flag
+set, meaning the user can use any database. A `db=<id>[,<id>...]` rule
+restricts the selector to only the listed databases.
+
+The default scope for database permissions is `alldbs`. The following rules
+control database access:
+
+* `db=<id>[,<id>...]`: Allow access only to the listed database ids.
+  At least one id is required.
+  This replaces any previously configured database ids and clears `alldbs`.
+* `alldbs`: Allow access to every database (default for new selectors).
+* `resetdbs`: Remove every database from the allowed list and clear `alldbs`.
+
+For example, to create a user that may only operate on databases 0 and 1:
+
+```
+> ACL SETUSER alice on +@all ~* db=0,1 nopass
+OK
+> ACL LIST
+1) "user alice on nopass ~* resetchannels db=0,1 +@all"
+2) "user default on nopass ~* &* +@all"
+```
+
+A later `db=` rule replaces the previous database list:
+
+```
+> ACL SETUSER alice db=2,3
+OK
+> ACL LIST
+1) "user alice on nopass ~* resetchannels db=2,3 +@all"
+2) "user default on nopass ~* &* +@all"
+```
+
+Use `resetdbs` to remove database access from an existing user:
+
+```
+> ACL SETUSER alice resetdbs
+OK
+> ACL LIST
+1) "user alice on nopass ~* resetchannels resetdbs +@all"
+2) "user default on nopass ~* &* +@all"
+```
+
+Database permissions can also be combined with [selectors](#selectors) so that
+different rule sets apply to different databases:
+
+```
+> ACL SETUSER bob on nopass (db=0,1 +@write +select ~*) (db=2,3 +@read +select ~*)
+OK
+> ACL LIST
+1) "user bob on nopass resetchannels -@all (~* resetchannels db=0,1 -@all +@write +select) (~* resetchannels db=2,3 -@all +@read +select)"
+2) "user default on nopass ~* &* +@all"
+```
+
+The `ACL LIST` output shows three sets of permissions for `bob`: the root
+permissions (`-@all`, with implicit `alldbs`) and two selectors, one for each
+parenthesized rule set. A command is allowed when the root permissions or any selector matches it.
+See [selectors](#selectors) for more information.
+
+### How database permissions are evaluated
+
+When a command is executed, the user must have access both to the command
+itself and to every database the command touches. Two groups of commands
+are checked specifically against the database list:
+
+Commands that explicitly reference a database id in their arguments require
+the user to have access to that id:
+
+* [`SELECT`](../commands/select.md) - target database id.
+* [`SWAPDB`](../commands/swapdb.md) - both database ids.
+* [`MOVE`](../commands/move.md) - destination database id, and the source
+  database which is the currently selected database.
+* [`COPY`](../commands/copy.md) - the destination database id when the `DB`
+  option is used.
+
+Commands that do not specify a database id but operate across the entire
+keyspace require the user to have `alldbs`:
+
+* [`FLUSHALL`](../commands/flushall.md)
+* [`CLUSTER CANCELSLOTMIGRATIONS`](../commands/cluster-cancelslotmigrations.md)
+* [`CLUSTER MIGRATESLOTS`](../commands/cluster-migrateslots.md)
+
+When access is denied because of database permissions, the server replies with
+a `NOPERM` error mentioning the database, and the event is recorded in
+[`ACL LOG`](../commands/acl-log.md) with the reason `database`.
+
+### Connection establishment
+
+Authentication and authorization are decoupled from the currently selected
+database. New client connections are placed in database 0 by default, even if
+the authenticated user is not allowed to access database 0. This lets a client
+authenticate first and then issue [`SELECT`](../commands/select.md) (or any
+command that does not access the keyspace) to switch to a database the user is
+allowed to use.
 
 ## How passwords are stored internally
 
@@ -543,8 +656,9 @@ Valkey replicas require the following commands to be allowed on the primary inst
 
 * PSYNC, REPLCONF, PING
 
+For cluster deployments, Valkey 9.0 introduces the Atomic Slot Migration feature, which requires the replication user to be allowed to run `CLUSTER SYNCSLOTS`.
 No keys need to be accessed, so this translates to the following rules:
 
-    ACL setuser replica-user on >somepassword +psync +replconf +ping
+    ACL setuser replica-user on >somepassword +psync +replconf +ping +cluster|syncslots
 
 Note that you don't need to configure the replicas to allow the primary to be able to execute any set of commands. The primary is always authenticated as the root user from the point of view of replicas.

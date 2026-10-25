@@ -6,13 +6,28 @@ description: >
 
 ## Usage
 
-**`valkey-benchmark`** [ _OPTIONS_ ] [ _COMMAND_ _ARGS_... ]
+**`valkey-benchmark`** [ _OPTIONS_ ] [**`--`**] [ _COMMAND_ _ARGS_... ]
 
 ## Description
 
-Valkey includes the `valkey-benchmark` utility that simulates running commands done
-by N clients while at the same time sending M total queries. The utility provides
-a default set of tests, or you can supply a custom set of tests.
+Simulates sending commands using multiple clients. The utility provides a
+default set of tests. You can run a subset of the tests using the `-t` option or
+supply one or more custom commands on the command line.
+
+To supply multiple commands on the command line, separate them with `;` as in
+`SET foo bar ';' GET foo`. (Quote `';'` to protect it from expansion by the shell.)
+You can prefix a command in the sequence with a number N to repeat the command N times.
+In command arguments, the following placeholders are substituted:
+
+`__rand_int__`
+: Replaced with a zero-padded random integer in the range selected using the -r option.
+
+`__data__`
+: Replaced with data of the size specified by the -d option.
+
+`{tag}`
+: Replaced with a tag that routes the command to the right cluster node.
+  Include this in key names when running in cluster mode.
 
 ## Options
 
@@ -63,6 +78,20 @@ a default set of tests, or you can supply a custom set of tests.
   mode, the key must contain "{tag}". Otherwise, the
   command will not be sent to the right cluster node.
 
+**`--rfr`** _mode_
+: Enable read from replicas in cluster mode.
+  This command must be used with the `--cluster` option.
+  There are three modes for reading from replicas:
+  
+  **no** - sends read requests to primaries only (default).
+  
+  **yes** - sends read requests to replicas only.
+  
+  **all** - sends read requests to all nodes.
+  
+   Since write commands will be rejected by replicas,
+   it is recommended to enable read from replicas only for read command tests.
+
 **`--enable-tracking`**
 : Send CLIENT TRACKING ON before starting benchmark.
 
@@ -111,6 +140,9 @@ a default set of tests, or you can supply a custom set of tests.
 **`--seed`** _num_
 : Set the seed for random number generator. Default seed is based on time.
 
+**`--rps`** _requests_
+: Limit the total number of requests per second. Default 0 (no limit).
+
 **`--tls`**
 : Establish a secure TLS connection.
 
@@ -144,6 +176,12 @@ a default set of tests, or you can supply a custom set of tests.
   in order of preference from highest to lowest separated by colon (":").
   See the **ciphers**(1ssl) manpage for more information about the syntax of this string,
   and specifically for TLSv1.3 ciphersuites.
+
+**`--rdma`**
+: Establish an RDMA connection.
+
+**`--mptcp`**
+: Establish an MPTCP connection.
 
 **`--help`**
 : Output help and exit.
@@ -183,8 +221,10 @@ Fill a list with 10000 random elements:
 
     $ valkey-benchmark -r 10000 -n 10000 lpush mylist __rand_int__
 
-On user specified command lines `__rand_int__` is replaced with a random integer
-with a range of values selected by the `-r` option.
+Benchmark a specific transaction:
+
+    $ valkey-benchmark -- multi ';' set key:__rand_int__ __data__ ';' \
+                          incr counter ';' exec\n\n");
 
 ### Running only a subset of the tests
 
@@ -254,6 +294,8 @@ pipelining of 16 commands:
 
 Using pipelining results in a significant increase in performance.
 
+## Notes
+
 ### Pitfalls and misconceptions
 
 The first point is obvious: the golden rule of a useful benchmark is to
@@ -266,12 +308,12 @@ in account.
 + Valkey commands return an acknowledgment for all usual commands. Some other data stores do not. Comparing Valkey to stores involving one-way queries is only mildly useful.
 + Naively iterating on synchronous Valkey commands does not benchmark Valkey itself, but rather measure your network (or IPC) latency and the client library intrinsic latency. To really test Valkey, you need multiple connections (like valkey-benchmark) and/or to use pipelining to aggregate several commands and/or multiple threads or processes.
 + Valkey is an in-memory data store with some optional persistence options. If you plan to compare it to transactional servers (MySQL, PostgreSQL, etc ...), then you should consider activating AOF and decide on a suitable fsync policy.
-+ Valkey is, mostly, a single-threaded server from the POV of commands execution (actually modern versions of Valkey use threads for different things). It is not designed to benefit from multiple CPU cores. People are supposed to launch several Valkey instances to scale out on several cores if needed. It is not really fair to compare one single Valkey instance to a multi-threaded data store.
++ Valkey primarily operates as a single-threaded server from the POV of commands execution. While the server can employ threads for I/O operations and command parsing, the core command execution remains sequential. For CPU-intensive workloads requiring multiple cores, users should consider running multiple Valkey instances in parallel. It is not really fair to compare one single Valkey instance to a multi-threaded data store.
 
 The `valkey-benchmark` program is a quick and useful way to get some figures and
 evaluate the performance of a Valkey instance on a given hardware. However,
 by default, it does not represent the maximum throughput a Valkey instance can
-sustain. Actually, by using pipelining and a fast client (hiredis), it is fairly
+sustain. Actually, by using pipelining and a fast client (libvalkey), it is fairly
 easy to write a program generating more throughput than valkey-benchmark. The
 default behavior of valkey-benchmark is to achieve throughput by exploiting
 concurrency only (i.e. it creates several connections to the server).

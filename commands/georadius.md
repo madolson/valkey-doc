@@ -30,14 +30,18 @@ so to query very large areas with a very small `COUNT` option may be slow even i
 
 By default the command returns the items to the client. It is possible to store the results with one of these options:
 
-* `!STORE`: Store the items in a sorted set populated with their geospatial information.
-* `!STOREDIST`: Store the items in a sorted set populated with their distance from the center as a floating point number, in the same unit specified in the radius.
+* `STORE`: Store the items in a sorted set populated with their geospatial information.
+* `STOREDIST`: Store the items in a sorted set populated with their distance from the center as a floating point number, in the same unit specified in the radius.
 
 ## Read-only variants
 
 Since `GEORADIUS` and `GEORADIUSBYMEMBER` have a `STORE` and `STOREDIST` option they are technically flagged as writing commands in the Valkey command table. For this reason read-only replicas will flag them, and Valkey Cluster replicas will redirect them to the primary instance even if the connection is in read-only mode (see the `READONLY` command of Valkey Cluster).
 
 Two read-only variants of the commands were added. They are exactly like the original commands but refuse the `STORE` and `STOREDIST` options. The two variants are called `GEORADIUS_RO` and `GEORADIUSBYMEMBER_RO`, and can safely be used in replicas.
+
+## Alternative
+
+`GEOSEARCH` and `GEOSEARCHSTORE` with the `BYRADIUS` argument.
 
 ## Examples
 

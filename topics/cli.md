@@ -25,10 +25,10 @@ This topic covers the different aspects of `valkey-cli`, starting from the simpl
 ## Options
 
 **`-h`** _hostname_
-: Server hostname (default: 127.0.0.1).
+: Server hostname (default: `$VALKEYCLI_HOST` if set, otherwise 127.0.0.1).
 
 **`-p`** _port_
-: Server port (default: 6379).
+: Server port (default: `$VALKEYCLI_PORT` if set, otherwise 6379).
 
 **`-t`** _timeout_
 : Server connection timeout in seconds (decimals allowed).
@@ -39,7 +39,7 @@ This topic covers the different aspects of `valkey-cli`, starting from the simpl
 
 **`-a`** _password_
 : Password to use when connecting to the server.
-  You can also use the `REDISCLI_AUTH` environment
+  You can also use the `VALKEYCLI_AUTH` environment
   variable to pass this password more safely.
   (If both are used, this argument takes precedence.)
 
@@ -51,7 +51,7 @@ This topic covers the different aspects of `valkey-cli`, starting from the simpl
 
 **`--askpass`**
 : Force user to input password with mask from STDIN.
-  If this argument is used, `-a` and the `REDISCLI_AUTH`
+  If this argument is used, `-a` and the `VALKEYCLI_AUTH`
   environment variable will be ignored.
 
 **`-u`** _uri_
@@ -136,6 +136,12 @@ This topic covers the different aspects of `valkey-cli`, starting from the simpl
   See the **ciphers**(1ssl) manpage for more information about the syntax of this string,
   and specifically for TLSv1.3 ciphersuites.
 
+**`--rdma`**
+: Establish an RDMA connection.
+
+**`--mptcp`**
+: Establish an MPTCP connection.
+
 **`--raw`**
 : Use raw formatting for replies (default when STDOUT is
   not a tty).
@@ -213,7 +219,12 @@ This topic covers the different aspects of `valkey-cli`, starting from the simpl
 
 **`--hotkeys`**
 : Sample keys looking for hot keys.
-  only works when maxmemory-policy is `*lfu`.
+  Only works when maxmemory-policy is `*lfu`.
+  This is equivalent to --hotkeys-count 16.
+
+**`--hotkeys-count`** _n_
+: Sample keys looking for the n most hot keys.
+  Only works when maxmemory-policy is `*lfu`.
 
 **`--scan`**
 : List all keys using the SCAN command.
@@ -394,7 +405,7 @@ perform authentication saving the need of explicitly using the `AUTH` command:
     PONG
 
 **NOTE:** For security reasons, provide the password to `valkey-cli` automatically via the
-`REDISCLI_AUTH` environment variable.
+`VALKEYCLI_AUTH` environment variable.
 
 Finally, it's possible to send a command that operates on a database number
 other than the default number zero by using the `-n <dbnum>` option:

@@ -5,9 +5,7 @@ description: >
 ---
 
 Welcome to the **Valkey Cluster Specification**. Here you'll find information
-about the algorithms and design rationales of Valkey Cluster. This document is a work
-in progress as it is continuously synchronized with the actual implementation
-of Valkey.
+about the algorithms and design rationales of Valkey Cluster.
 
 ## Main properties and rationales of the design
 
@@ -15,7 +13,7 @@ of Valkey.
 
 Valkey Cluster is a distributed implementation of Valkey with the following goals in order of importance in the design:
 
-* High performance and linear scalability up to 1000 nodes. There are no proxies, asynchronous replication is used, and no merge operations are performed on values.
+* High performance and linear scalability up to 2000 nodes. There are no proxies, asynchronous replication is used, and no merge operations are performed on values.
 * Acceptable degree of write safety: the system tries (in a best-effort way) to retain all the writes originating from clients connected with the majority of the primary nodes. Usually there are small windows where acknowledged writes can be lost. Windows to lose acknowledged writes are larger when clients are in a minority partition.
 * Availability: Valkey Cluster is able to survive partitions where the majority of the primary nodes are reachable and there is at least one reachable replica for every primary node that is no longer reachable. Moreover using *replicas migration*, primaries no longer replicated by any replica will receive one from a primary which is covered by multiple replicas.
 
@@ -31,8 +29,8 @@ to force certain keys to be stored in the same hash slot. However, during
 manual resharding, multi-key operations may become unavailable for some time
 while single-key operations are always available.
 
-Valkey Cluster does not support multiple databases like the standalone version
-of Valkey. We only support database `0`; the `SELECT` command is not allowed.
+Starting with version 9.0, Valkey cluster supports multiple databases, similar to standalone mode but with some additional restrictions.
+You can enable multi-database support using the `cluster-databases` setting (default value is `1`).
 
 ## Client and Server roles in the Valkey cluster protocol
 
@@ -374,6 +372,10 @@ The client needs to reissue the query to the specified node's endpoint address a
 The endpoint can be either an IP address, a hostname, or it can be empty (e.g. `-MOVED 3999 :6380`). 
 An empty endpoint indicates that the server node has an unknown endpoint, and the client should send the next request to the same endpoint as the current request but with the provided port. 
 
+The endpoint can be an IPv6 address, which can contain multiple colons.
+Here, an IPv6 address is *not* enclosed in square brackets as it would be in other contexts such as URIs.
+To properly split the string `endpoint:port` into `endpoint` and `port`, a cluster client needs to locate the *last* colon.
+
 Note that even if the client waits a long time before reissuing the query,
 and in the meantime the cluster configuration changed, the destination node
 will reply again with a MOVED error if the hash slot 3999 is now served by
@@ -404,7 +406,25 @@ later in this document, otherwise it is not a complete Valkey Cluster client.
 
 ### Live resharding
 
-Valkey Cluster supports the ability to add and remove nodes while the cluster
+#### Atomic slot migration
+
+Valkey 9.0 introduced a server-side mechanism for live resharding called
+[atomic slot migration](atomic-slot-migration.md), which is the recommended method.
+
+When compared to legacy slot migration, atomic slot migration allows you to
+perform live resharding faster, with higher reliability, and less client-side
+impact. Atomic slot migration is started using the `CLUSTER MIGRATESLOTS` command.
+
+You can find more details about atomic slot migration in the following pages:
+
+* [Atomic slot migration overview](atomic-slot-migration.md)
+* [`CLUSTER MIGRATESLOTS` command documentation](../commands/cluster-migrateslots.md)
+* [`CLUSTER GETSLOTMIGRATIONS` command documentation](../commands/cluster-getslotmigrations.md)
+* [`CLUSTER CANCELSLOTMIGRATIONS` command documentation](../commands/cluster-cancelslotmigrations.md)
+
+#### Legacy slot migration
+
+Valkey Cluster also supports a legacy, client-driven mechanism to add and remove nodes while the cluster
 is running. Adding or removing a node is abstracted into the same
 operation: moving a hash slot from one node to another. This means
 that the same basic mechanism can be used in order to rebalance the cluster, add

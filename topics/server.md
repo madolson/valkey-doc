@@ -38,7 +38,7 @@ Additional options:
 **`--test-memory`** _megabytes_
 : Run a memory test and exit.
 
-**`--check-sytem`**
+**`--check-system`**
 : Output some operating system properties relevant for running Valkey and exit.
 
 **`--sentinel`**
@@ -78,4 +78,4 @@ the config file:
 
 ## See also
 
-[Valkey documentation](./), [Introduction](introduction.md), [Configuration](valkey.conf.md), [Installation](installation.md), [valkey-cli](cli.md)
+[Valkey documentation](index.md), [Introduction](introduction.md), [Configuration](valkey.conf.md), [Installation](installation.md), [valkey-cli](cli.md)

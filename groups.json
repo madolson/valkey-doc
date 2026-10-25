@@ -3,6 +3,14 @@
     "display": "Bitmap",
     "description": "Operations on the Bitmap data type"
   },
+  "bloom": {
+    "display": "Bloom filter",
+    "description": "Operations on the Bloom filter data type"
+  },
+  "search": {
+    "display": "Search",
+    "description": "Vector Similarity Search engine optimized for AI-driven workloads"
+  },
   "cluster": {
     "display": "Cluster",
     "description": "Valkey Cluster management"
@@ -26,6 +34,10 @@
   "hyperloglog": {
     "display": "HyperLogLog",
     "description": "Operations on the HyperLogLog data type"
+  },
+  "json": {
+    "display": "JSON",
+    "description": "Operations on the JSON data type"
   },
   "list": {
     "display": "List",

@@ -18,6 +18,26 @@ instead of killing just by address. The following filters are available:
 * `CLIENT KILL USER username`. Closes all the connections that are authenticated with the specified [ACL](../topics/acl.md) username, however it returns an error if the username does not map to an existing ACL user.
 * `CLIENT KILL SKIPME yes/no`. By default this option is set to `yes`, that is, the client calling the command will not get killed, however setting this option to `no` will have the effect of also killing the client calling the command.
 * `CLIENT KILL MAXAGE maxage`. Closes all the connections that are older than the specified age, in seconds.
+* `CLIENT KILL FLAGS flags`. Kill only clients whose flag string includes the specified characters. Returns an error if valid flags are not used.
+* `CLIENT KILL NAME name`. Kill clients with the specified name.
+* `CLIENT KILL IDLE idle`. Kill only clients that have been idle for at least the specified time.
+* `CLIENT KILL LIB-NAME lib-name`. Kill clients using the specified library name.
+* `CLIENT KILL LIB-VER lib-version`. Kill clients running the specified library version.
+* `CLIENT KILL DB db`. Kill clients operating on the specified database id.
+* `CLIENT KILL IP ip`. Kill clients with the specified originating IP address.
+* `CLIENT KILL CAPA capa`. Kill clients that have the specified capabilities.
+* `CLIENT KILL NOT-ID client-id [client-id ...]`. Kill clients are not in the IDs set.
+* `CLIENT KILL NOT-TYPE type`. Kill clients are not in the specified type.
+* `CLIENT KILL NOT-ADDR ip:port`. Kill clients except the specified ip and port.
+* `CLIENT KILL NOT-LADDR ip:port`. Kill all clients not connected to specified local (bind) address.
+* `CLIENT KILL NOT-USER username`. Closes all the connections that are not authenticated with the specified [ACL](../topics/acl.md) username.
+* `CLIENT KILL NOT-FLAGS flags`. Kill clients not with the specified flag string.
+* `CLIENT KILL NOT-NAME name`. Kill clients not with the specified name.
+* `CLIENT KILL NOT-LIB-NAME lib-name`. Kill clients not using the specified library name.
+* `CLIENT KILL NOT-LIB-VER lib-version`. Kill clients not with the specified library version.
+* `CLIENT KILL NOT-DB db`. Kill clients not with the specified database ID.
+* `CLIENT KILL NOT-CAPA capa`. Kill clients not with the specified capabilities.
+* `CLIENT KILL NOT-IP ip`. Kill clients not with the specified IP address.
 
 It is possible to provide multiple filters at the same time. The command will handle multiple filters via logical AND. For example:
 

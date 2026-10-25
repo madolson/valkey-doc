@@ -21,6 +21,46 @@ You can use one or more optional arguments to filter the list:
 - **`MAXAGE milliseconds`**: Filters the list to include only clients whose connection age (time since the client was created) is greater than or equal to the specified number of milliseconds.
   > Note: This is actually a minimum age, not a maximum age. This filter was first added to CLIENT KILL, where the intention was to keep clients of a maximum age and kill the ones newer than the max age.
 
+- **`FLAGS flags`**: Filters the list by the client's flag string.
+
+- **`NAME name`**: Filters the list to include only clients with the specified name.
+
+- **`IDLE idle`**: Includes only clients that have been idle for at least the specified time.
+
+- **`LIB-NAME lib-name`**: Filters the list to include only clients using the specified library name.
+
+- **`LIB-VER lib-ver`**: Filters the list to include only clients with the specified library version.
+
+- **`DB db`**: Filters the list to include only clients with the specified database ID.
+
+- **`IP ip`**: Filters the list to include only clients with the specified IP address.
+
+- **`CAPA capa`**: Filters the list to include only clients with the specified capabilities.
+
+- **`NOT-ID client-id [client-id ...]`**: Excludes clients in the IDs set.
+
+- **`NOT-TYPE type`**: Excludes clients of the specified type.
+
+- **`NOT-ADDR ip:port`**: Excludes clients of the specified address and port.
+
+- **`NOT-LADDR ip:port`**: Excludes clients connected to the specified local address and port.
+
+- **`NOT-USER user`**: Excludes clients of the specified user.
+
+- **`NOT-FLAGS flags`**: Excludes clients with the specified flag string.
+
+- **`NOT-NAME name`**: Excludes clients with the specified name.
+
+- **`NOT-LIB-NAME lib-name`**: Excludes clients using the specified library name.
+
+- **`NOT-LIB-VER lib-ver`**: Excludes clients with the specified library version.
+
+- **`NOT-DB db`**: Excludes clients with the specified database ID.
+
+- **`NOT-CAPA capa`**: Excludes clients with the specified capabilities.
+
+- **`NOT-IP ip`**: Excludes clients with the specified IP address.
+
 Filters can be combined to perform more precise searches. The command will handle multiple filters via logical AND.
 
 Here is the meaning of the fields:
@@ -29,7 +69,7 @@ Here is the meaning of the fields:
 * `addr`: address/port of the client
 * `laddr`: address/port of local address client connected to (bind address)
 * `fd`: file descriptor corresponding to the socket
-* `name`: the name set by the client with `CLIENT SETNAME`
+* `name`: the name set by the client with [`CLIENT SETNAME`](client-setname.md)
 * `age`: total duration of the connection in seconds
 * `idle`: idle time of the connection in seconds
 * `flags`: client flags (see below)
@@ -53,7 +93,7 @@ Here is the meaning of the fields:
 * `user`: the authenticated username of the client
 * `redir`: client id of current client tracking redirection
 * `resp`: client RESP protocol version.
-* `lib-name`: The client library name as set by `CLIENT SETINFO`
+* `lib-name`: The client library name as set by [`CLIENT SETINFO`](client-setinfo.md)
 * `lib-version`: The client library version as set by `CLIENT SETINFO`
 * `tot-net-in`: Total network input bytes read from this client. Added in Valkey 8.0
 * `tot-net-out`: Total network output bytes sent to this client. Added in Valkey 8.0
@@ -101,6 +141,8 @@ w: the client socket is writable (event loop)
 
 ```bash
 CLIENT LIST TYPE normal USER admin MAXAGE 5000 ID 1234 5678
+id=1234 addr=127.0.0.1:64000 laddr=127.0.0.1:6379 fd=5 name= age=600 idle=300 flags= db=0 sub=0 psub=0 ssub=0 multi=-1 watch=0 qbuf=0 qbuf-free=32768 obl=0 oll=0 omem=0 tot-mem=1024 events=r cmd=client|list user=default redir=-1 resp=2 lib-name= lib-ver=
+id=5678 addr=127.0.0.1:64001 laddr=127.0.0.1:6379 fd=6 name= age=900 idle=450 flags= db=0 sub=0 psub=0 ssub=0 multi=-1 watch=0 qbuf=0 qbuf-free=32768 obl=0 oll=0 omem=0 tot-mem=2048 events=r cmd=client|list user=default redir=-1 resp=2 lib-name= lib-ver=
 ```
 
 ## Notes

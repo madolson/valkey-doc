@@ -156,7 +156,7 @@ multiple elements into a list in a single call:
 127.0.0.1:6379> RPUSH bikes:repairs bike:1 bike:2 bike:3
 (integer) 3
 127.0.0.1:6379> LPUSH bikes:repairs bike:important_bike bike:very_important_bike
-127.0.0.1:6379> LRANGE mylist 0 -1
+127.0.0.1:6379> LRANGE bikes:repairs 0 -1
 1) "bike:very_important_bike"
 2) "bike:important_bike"
 3) "bike:1"
@@ -368,11 +368,11 @@ Example of rule 2:
 127.0.0.1:6379> EXISTS bikes:repairs
 (integer) 1
 127.0.0.1:6379> LPOP bikes:repairs
-"bike:3"
+"bike:1"
 127.0.0.1:6379> LPOP bikes:repairs
 "bike:2"
 127.0.0.1:6379> LPOP bikes:repairs
-"bike:1"
+"bike:3"
 127.0.0.1:6379> EXISTS bikes:repairs
 (integer) 0
 ```

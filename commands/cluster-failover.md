@@ -16,6 +16,12 @@ This way clients are moved away from the old primary to the new primary
 atomically and only when the replica that is turning into the new primary
 has processed all of the replication stream from the old primary.
 
+There is a built-in timeout for the primary to resume processing queries if the
+replica does not catch quickly enough or is unable to secure the votes to take over.
+The default failover timeout is 5000ms. It is possible to configure the timeout
+via the `cluster-manual-failover-timeout` configuration parameter (added in Valkey 8.1)
+and decide how long the primary will pause in the worst case scenario.
+
 ## FORCE option: manual failover when the primary is down
 
 The command behavior can be modified by two options: **FORCE** and **TAKEOVER**.
@@ -58,6 +64,6 @@ Because of this the **TAKEOVER** option should be used with care.
 * An `OK` reply is no guarantee that the failover will succeed.
 * A replica can only be promoted to a primary if it is known as a replica by a majority of the primaries in the cluster.
   If the replica is a new node that has just been added to the cluster (for example after upgrading it), it may not yet be known to all the primaries in the cluster.
-  To check that the primaries are aware of a new replica, you can send `CLUSTER NODES` or `CLUSTER REPLICAS` to each of the primary nodes and check that it appears as a replica, before sending `CLUSTER FAILOVER` to the replica.
-* To check that the failover has actually happened you can use `ROLE`, `INFO REPLICATION` (which indicates "role:master" after successful failover), or `CLUSTER NODES` to verify that the state of the cluster has changed sometime after the command was sent.
+  To check that the primaries are aware of a new replica, you can send [`CLUSTER NODES`](cluster-nodes.md) or [`CLUSTER REPLICAS`](cluster-replicas.md) to each of the primary nodes and check that it appears as a replica, before sending `CLUSTER FAILOVER` to the replica.
+* To check that the failover has actually happened you can use [`ROLE`](role.md), [`INFO REPLICATION`](info.md) (which indicates "role:master" after successful failover), or `CLUSTER NODES` to verify that the state of the cluster has changed sometime after the command was sent.
 * To check if the failover has failed, check the replica's log for "Manual failover timed out", which is logged if the replica has given up after a few seconds.

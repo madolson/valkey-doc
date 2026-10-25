@@ -5,9 +5,9 @@ The `SCAN` command and the closely related commands `SSCAN`, `HSCAN` and `ZSCAN`
 * `HSCAN` iterates fields of Hash types and their associated values.
 * `ZSCAN` iterates elements of Sorted Set types and their associated scores.
 
-Since these commands allow for incremental iteration, returning only a small number of elements per call, they can be used in production without the downside of commands like `KEYS` or `SMEMBERS` that may block the server for a long time (even several seconds) when called against big collections of keys or elements.
+Since these commands allow for incremental iteration, returning only a small number of elements per call, they can be used in production without the downside of commands like [`KEYS`](keys.md) or [`SMEMBERS`](smembers.md) that may block the server for a long time (even several seconds) when called against big collections of keys or elements.
 
-However while blocking commands like `SMEMBERS` are able to provide all the elements that are part of a Set in a given moment, The SCAN family of commands only offer limited guarantees about the returned elements since the collection that we incrementally iterate can change during the iteration process.
+However while blocking commands like `SMEMBERS` are able to provide all the elements that are part of a Set in a given moment, the SCAN family of commands only offer limited guarantees about the returned elements since the collection that we incrementally iterate can change during the iteration process.
 
 Note that `SCAN`, `SSCAN`, `HSCAN` and `ZSCAN` all work very similarly, so this documentation covers all four commands. However an obvious difference is that in the case of `SSCAN`, `HSCAN` and `ZSCAN` the first argument is the name of the key holding the Set, Hash or Sorted Set value. The `SCAN` command does not need any key name argument as it iterates keys in the current database, so the iterated object is the database itself.
 
@@ -70,6 +70,8 @@ However because `SCAN` has very little state associated (just the cursor) it has
 
 * A given element may be returned multiple times. It is up to the application to handle the case of duplicated elements, for example only using the returned elements in order to perform operations that are safe when re-applied multiple times.
 * Elements that were not constantly present in the collection during a full iteration, may be returned or not: it is undefined.
+
+Starting with Valkey **9.1**, you can make the `SCAN` family (including `HSCAN`, `SSCAN`, and `ZSCAN`) return keys in a **consistent order**. Set the immutable startup configuration **`hash-seed`** to the **same string (up to 256 characters) on all nodes** which helps clients resume an in-progress scan even after a failover.
 
 ## Number of elements returned at every SCAN call
 
@@ -157,7 +159,7 @@ To use pattern with hash tag, see [Hash tags](../topics/cluster-spec.md#hash-tag
 
 ## The TYPE option
 
-You can use the `!TYPE` option to ask `SCAN` to only return objects that match a given `type`, allowing you to iterate through the database looking for keys of a specific type. The **TYPE** option is only available on the whole-database `SCAN`, not `HSCAN` or `ZSCAN` etc.
+You can use the `TYPE` option to ask `SCAN` to only return objects that match a given `type`, allowing you to iterate through the database looking for keys of a specific type. The **`TYPE`** option is only available on the whole-database `SCAN`, not `HSCAN` or `ZSCAN` etc.
 
 The `type` argument is the same string name that the `TYPE` command returns. Note a quirk where some Valkey types, such as GeoHashes, HyperLogLogs, Bitmaps, and Bitfields, may internally be implemented using other Valkey types, such as a string or zset, so can't be distinguished from other keys of that same type by `SCAN`. For example, a ZSET and GEOHASH:
 
@@ -246,6 +248,16 @@ In the `COUNT` option documentation, we state that sometimes this family of comm
 However once the data structures are bigger and are promoted to use real hash tables, the `SCAN` family of commands will resort to the normal behavior. Note that since this special behavior of returning all the elements is true only for small aggregates, it has no effects on the command complexity or latency. However the exact limits to get converted into real hash tables are [user configurable](../topics/memory-optimization.md), so the maximum number of elements you can see returned in a single call depends on how big an aggregate data type could be and still use the packed representation.
 
 Also note that this behavior is specific of `SSCAN`, `HSCAN` and `ZSCAN`. `SCAN` itself never shows this behavior because the key space is always represented by hash tables.
+
+## Scan-induced accumulation bias
+
+A common pattern is to iterate a large collection with `SCAN` (or `SSCAN`, `HSCAN`, `ZSCAN`) while deleting the returned elements, expecting the collection to drain over time. **Be careful when another process concurrently adds elements back into the same collection.** This combination can create a systematic load imbalance inside the underlying hash table.
+
+The reason is that the `SCAN` cursor sweeps the hash table in a fixed order. Buckets *behind* the cursor have just been visited and emptied of the elements that were removed, while buckets *ahead* of the cursor have not been visited yet. If a second process keeps inserting new elements uniformly at random to keep the collection near a target size, those insertions land disproportionately in the not-yet-scanned region. With each pass, the buckets ahead of the cursor accumulate more and more elements, while the buckets behind it stay depleted - the cursor effectively acts like a snowplow, pushing load ahead of itself.
+
+Over time some buckets grow far beyond their fair share. Scaled up to hundreds of thousands of elements, a single bucket can grow large enough that one `SCAN` call returns far more elements than the requested `COUNT` (recall that `COUNT` is only a hint, and `SCAN` may return all elements that hash to the buckets it visits in a given call).
+
+**Restarting the scan from the beginning makes this worse.** If your application aborts mid-iteration and restarts with a cursor of 0 - for example, automatically retrying from scratch whenever it hits an error - it repeatedly re-scans the already-depleted front of the table while never reaching the increasingly skewed buckets at the back. This turns the imbalance into a runaway feedback loop and can leave the hash table extremely skewed. To avoid this, **always resume from the cursor returned by the previous call** rather than restarting the iteration at 0. On a transient error, retry from the last cursor you received, not from the beginning.
 
 ## Further reading
 

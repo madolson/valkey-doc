@@ -8,6 +8,9 @@
   "ACL DELUSER": [
     "[Integer reply](../topics/protocol.md#integers): the number of users that were deleted. This number will not always match the number of arguments since certain users may not exist."
   ],
+  "ACL DIGEST": [
+    "[Bulk string reply](../topics/protocol.md#bulk-strings): the digest of the ACL rules currently in effect, as a hexadecimal string."
+  ],
   "ACL DRYRUN": [
     "Any of the following:",
     "* [Simple string reply](../topics/protocol.md#simple-strings): `OK` on success.",
@@ -61,6 +64,47 @@
   ],
   "AUTH": [
     "[Simple string reply](../topics/protocol.md#simple-strings): `OK`, or an error if the password, or username/password pair, is invalid."
+  ],
+  "BF.ADD": [
+    "One of the following:",
+    "* [Integer reply](../topics/protocol.md#integers): `1` if the item was successfully added",
+    "* [Integer reply](../topics/protocol.md#integers): `0` if the item already existed in the bloom filter",
+    "",
+    "An error will occur if input is invalid, if a non bloom filter key with the same name already exists, if the bloom filter creation / scale out exceeds limits, or if an item is being added to a full non scaling filter."
+  ],
+  "BF.CARD": [
+    "[Integer reply](../topics/protocol.md#integers): The number of items successfully added to the bloom filter, or 0 if the key does not exist"
+  ],
+  "BF.EXISTS": [
+    "One of the following:",
+    "* [Integer reply](../topics/protocol.md#integers): `1` if the item exists in the bloom filter",
+    "* [Integer reply](../topics/protocol.md#integers): `0` if the bloom filter does not exist or the item has not been added to the bloom filter"
+  ],
+  "BF.INFO": [
+    "When no optional arguments are provided:",
+    "* [Array reply](../topics/protocol.md#arrays): List of information about the bloom filter.",
+    "When an optional argument excluding ERROR is provided:",
+    "* [Integer reply](../topics/protocol.md#integers): argument value",
+    "When ERROR is provided as an optional argument:",
+    "* [String reply](../topics/protocol.md#simple-strings): argument value"
+  ],
+  "BF.INSERT": [
+    "[Array reply](../topics/protocol.md#arrays): Array of ints (1’s and 0’s) - if filter already exists or if creation was successful. An empty array if no items are provided",
+    "",
+    "An error will occur if input is invalid, if a non bloom filter key with the same name already exists, if the bloom filter creation / scale out exceeds limits, or if an item is being added to a full non scaling filter."
+  ],
+  "BF.MADD": [
+    "[Array reply](../topics/protocol.md#arrays): Array of ints (1’s and 0’s)",
+    "",
+    "An error will occur if input is invalid, if a non bloom filter key with the same name already exists, if the bloom filter creation / scale out exceeds limits, or if an item is being added to a full non scaling filter."
+  ],
+  "BF.MEXISTS": [
+    "[Array reply](../topics/protocol.md#arrays): Array of ints (1’s and 0’s)"
+  ],
+  "BF.RESERVE": [
+    "[Simple string reply](../topics/protocol.md#simple-strings): `OK`.",
+    "",
+    "An error will occur if input is invalid, if a key with the same name already exists, or if the bloom filter creation exceeds limits."
   ],
   "BGREWRITEAOF": [
     "[Bulk string reply](../topics/protocol.md#bulk-strings): a simple string reply indicating that the rewriting started or is about to start ASAP when the call is executed with success.",
@@ -164,11 +208,11 @@
   "CLIENT ID": [
     "[Integer reply](../topics/protocol.md#integers): the ID of the client."
   ],
-  "CLIENT INFO": [
-    "[Bulk string reply](../topics/protocol.md#bulk-strings): a unique string for the current client, as described at the `CLIENT LIST` page."
-  ],
   "CLIENT IMPORT-SOURCE": [
     "[Simple string reply](../topics/protocol.md#simple-strings): `OK`."
+  ],
+  "CLIENT INFO": [
+    "[Verbatim string reply](../topics/protocol.md#verbatim-strings): a unique string for the current client, as described at the `CLIENT LIST` page."
   ],
   "CLIENT KILL": [
     "One of the following:",
@@ -176,7 +220,7 @@
     "* [Integer reply](../topics/protocol.md#integers): when called in filter/value format, the number of clients killed."
   ],
   "CLIENT LIST": [
-    "[Bulk string reply](../topics/protocol.md#bulk-strings): information and statistics about client connections."
+    "[Verbatim string reply](../topics/protocol.md#verbatim-strings): information and statistics about client connections."
   ],
   "CLIENT NO-EVICT": [
     "[Simple string reply](../topics/protocol.md#simple-strings): `OK`."
@@ -250,7 +294,7 @@
     "[Array reply](../topics/protocol.md#arrays): a list of subcommands and their descriptions."
   ],
   "CLUSTER INFO": [
-    "[Bulk string reply](../topics/protocol.md#bulk-strings): A map between named fields and values in the form of `<field>:<value>` lines separated by newlines composed by the two bytes `CRLF`."
+    "[Verbatim string reply](../topics/protocol.md#verbatim-strings): A map between named fields and values in the form of `<field>:<value>` lines separated by newlines composed by the two bytes `CRLF`."
   ],
   "CLUSTER KEYSLOT": [
     "[Integer reply](../topics/protocol.md#integers): The hash slot number for the specified key"
@@ -259,7 +303,7 @@
     "[Array reply](../topics/protocol.md#arrays): an array of [Map reply](../topics/protocol.md#maps) where each map contains various attributes and their values of a cluster link."
   ],
   "CLUSTER MEET": [
-    "[Simple string reply](../topics/protocol.md#simple-strings): `OK` if the command was successful. If the address or port specified are invalid an error is returned."
+    "[Simple string reply](../topics/protocol.md#simple-strings): `OK` if the command was successful. If the port or cluster bus port number is out of range, or if an invalid address is specified, an error is returned."
   ],
   "CLUSTER MYID": [
     "[Bulk string reply](../topics/protocol.md#bulk-strings): the node ID."
@@ -268,7 +312,7 @@
     "[Bulk string reply](../topics/protocol.md#bulk-strings): the node's shard ID."
   ],
   "CLUSTER NODES": [
-    "[Bulk string reply](../topics/protocol.md#bulk-strings): the serialized cluster configuration."
+    "[Verbatim string reply](../topics/protocol.md#verbatim-strings): the serialized cluster configuration."
   ],
   "CLUSTER REPLICAS": [
     "[Array reply](../topics/protocol.md#arrays): a list of replica nodes replicating from the specified primary node provided in the same format used by `CLUSTER NODES`."
@@ -294,11 +338,16 @@
   "CLUSTER SLAVES": [
     "[Array reply](../topics/protocol.md#arrays): a list of replica nodes replicating from the specified primary node provided in the same format used by `CLUSTER NODES`."
   ],
+  "CLUSTER SLOT-STATS": [
+    "[Array reply](../topics/protocol.md#arrays): nested list of slot usage statistics."
+  ],
   "CLUSTER SLOTS": [
     "[Array reply](../topics/protocol.md#arrays): nested list of slot ranges with networking information."
   ],
-  "CLUSTER SLOT-STATS": [
-    "[Array reply](../topics/protocol.md#arrays): nested list of slot usage statistics."
+  "CLUSTERSCAN": [
+    "[Array reply](../topics/protocol.md#arrays): specifically, an array with two elements.",
+    "* The first element is a [Bulk string reply](../topics/protocol.md#bulk-strings) that represents the cursor.",
+    "* The second element is an [Array reply](../topics/protocol.md#arrays) with the names of scanned keys."
   ],
   "COMMAND": [
     "[Array reply](../topics/protocol.md#arrays): a nested list of command details. The order of the commands in the array is random."
@@ -343,7 +392,7 @@
   "COPY": [
     "One of the following:",
     "* [Integer reply](../topics/protocol.md#integers): `1` if _source_ was copied.",
-    "* [Integer reply](../topics/protocol.md#integers): `0` if _source_ was not copied."
+    "* [Integer reply](../topics/protocol.md#integers): `0` if _source_ was not copied when the destination key already exists."
   ],
   "DBSIZE": [
     "[Integer reply](../topics/protocol.md#integers): the number of keys in the currently-selected database."
@@ -357,6 +406,16 @@
   ],
   "DEL": [
     "[Integer reply](../topics/protocol.md#integers): the number of keys that were removed."
+  ],
+  "DELIFEQ": [
+    "One of the following:",
+    "* [Integer reply](../topics/protocol.md#integers): `1` if the key was deleted.",
+    "* [Integer reply](../topics/protocol.md#integers): `0` if the key was not deleted because it did not exist or the value was not equal to the provided value."
+  ],
+  "DELEX": [
+    "One of the following:",
+    "* [Integer reply](../topics/protocol.md#integers): `1` if `key` was deleted.",
+    "* [Integer reply](../topics/protocol.md#integers): `0` if `key` was not deleted because it did not exist or the value did not follow the condition."
   ],
   "DISCARD": [
     "[Simple string reply](../topics/protocol.md#simple-strings): `OK`."
@@ -419,6 +478,23 @@
   ],
   "FLUSHDB": [
     "[Simple string reply](../topics/protocol.md#simple-strings): `OK`."
+  ],
+  "FT.CREATE": [
+    "[Simple string reply](../topics/protocol.md#simple-strings): `OK`.",
+    "",
+    "If an error occurs during the index creation, an error is returned."
+  ],
+  "FT.DROPINDEX": [
+    "[Simple string reply](../topics/protocol.md#simple-strings): `OK`."
+  ],
+  "FT.INFO": [
+    "[Array reply](../topics/protocol.md#arrays):: a map of index fields in the form of key followed by value"
+  ],
+  "FT.SEARCH": [
+    "[Array reply](../topics/protocol.md#arrays): the first entry in the array represents the count of matching keys, followed by one array entry for each matching key. When `NOCONTENT` is specified, each entry in the response contains only the matching key name, otherwise, each entry includes the matching key name, followed by an array of the returned fields"
+  ],
+  "FT._LIST": [
+    "[Array reply](../topics/protocol.md#arrays): an array of strings which are the currently defined index names"
   ],
   "FUNCTION": [],
   "FUNCTION DELETE": [
@@ -571,6 +647,9 @@
   "HMGET": [
     "[Array reply](../topics/protocol.md#arrays): a list of values associated with the given fields, in the same order as they are requested."
   ],
+  "HGETDEL": [
+    "[Array reply](../topics/protocol.md#arrays): a list of values associated with the given fields that are deleted or `nil` for the fields that do not exist. These are in same order as requested."
+  ],
   "HMSET": [
     "[Simple string reply](../topics/protocol.md#simple-strings): `OK`."
   ],
@@ -600,6 +679,72 @@
   "HVALS": [
     "[Array reply](../topics/protocol.md#arrays): a list of values in the hash, or an empty list when the key does not exist."
   ],
+  "HSETEX": [
+    "One of the following:",
+    "* [Integer reply](../topics/protocol.md#integers): `0` if none of the provided fields value and or expiration time was set.",
+    "* [Integer reply](../topics/protocol.md#integers): `1` if all the fields value and or expiration time was set."
+  ],
+  "HGETEX": [
+    "[Array reply](../topics/protocol.md#arrays): a list of values associated with the given fields, in the same order as they are requested."
+  ],
+  "HEXPIRE": [
+    "[Array reply](../topics/protocol.md#arrays): a list of integer codes indicating the result of setting expiry on each specified field, in the same order as the fields are requested.",
+    "* -2: Field does not exist in the HASH, or key does not exist.",
+    "* 0: The specified NX | XX | GT | LT condition has not been met.",
+    "* 1: The expiration time was applied.",
+    "* 2: When called with 0 seconds."
+  ],
+  "HPEXPIRE": [
+    "[Array reply](../topics/protocol.md#arrays): a list of integer codes indicating the result of setting expiry on each specified field, in the same order as the fields are requested.",
+    "* -2: Field does not exist in the HASH, or key does not exist.",
+    "* 0: The specified NX | XX | GT | LT condition has not been met.",
+    "* 1: The expiration time was applied.",
+    "* 2: When called with 0 seconds."
+  ],
+  "HEXPIREAT": [
+    "[Array reply](../topics/protocol.md#arrays): a list of integer codes indicating the result of setting expiry on each specified field, in the same order as the fields are requested.",
+    "* -2: Field does not exist in the HASH, or key does not exist.",
+    "* 0: The specified NX | XX | GT | LT condition has not been met.",
+    "* 1: The expiration time was applied.",
+    "* 2: When called with 0 seconds."
+  ],
+  "HPEXPIREAT": [
+    "[Array reply](../topics/protocol.md#arrays): a list of integer codes indicating the result of setting expiry on each specified field, in the same order as the fields are requested.",
+    "* -2: Field does not exist in the HASH, or key does not exist.",
+    "* 0: The specified NX | XX | GT | LT condition has not been met.",
+    "* 1: The expiration time was applied.",
+    "* 2: When called with 0 seconds."
+  ],
+  "HPERSIST": [
+    "[Array reply](../topics/protocol.md#arrays): a list of integer codes indicating the result of setting expiry on each specified field, in the same order as the fields are requested.",
+    "* -2: Field does not exist in the provided hash key, or the hash key does not exist.",
+    "* -1: Field exists in the provided hash key, but has no expiration associated with it.",
+    "* 1: The expiration time was removed from the hash key field."
+  ],
+  "HTTL": [
+    "[Array reply](../topics/protocol.md#arrays): a list of values associated with the result of getting the remaining time-to-live of the specific fields, in the same order as they are requested.",
+    "* -2: Field does not exist in the provided hash key, or the hash key is empty.",
+    "* -1: Field exists in the provided hash key, but has no expiration associated with it.",
+    "* [Integer](../topics/protocol.md#integers): The expiration time associated with the hash key field, in seconds."
+  ],
+  "HPTTL": [
+    "[Array reply](../topics/protocol.md#arrays): a list of values associated with the result of getting the remaining time-to-live of the specific fields, in the same order as they are requested.",
+    "* -2: Field does not exist in the provided hash key, or the hash key is empty.",
+    "* -1: Field exists in the provided hash key, but has no expiration associated with it.",
+    "* [Integer](../topics/protocol.md#integers): The expiration time associated with the hash key field, in milliseconds."
+  ],
+  "HEXPIRETIME": [
+    "[Array reply](../topics/protocol.md#arrays): a list of values associated with the result of getting the absolute expiry timestamp of the specific fields, in the same order as they are requested.",
+    "* -2: Field does not exist in the provided hash key, or the hash key is empty.",
+    "* -1: Field exists in the provided hash key, but has no expiration associated with it.",
+    "* [Integer](../topics/protocol.md#integers): The expiration time associated with the hash key field, in seconds."
+  ],
+  "HPEXPIRETIME": [
+    "[Array reply](../topics/protocol.md#arrays): a list of values associated with the result of getting the absolute expiry timestamp of the specific fields, in the same order as they are requested.",
+    "* -2: Field does not exist in the provided hash key, or the hash key is empty.",
+    "* -1: Field exists in the provided hash key, but has no expiration associated with it.",
+    "* [Integer](../topics/protocol.md#integers): The expiration time associated with the hash key field, in milliseconds."
+  ],
   "INCR": [
     "[Integer reply](../topics/protocol.md#integers): the value of the key after the increment."
   ],
@@ -610,9 +755,271 @@
     "[Bulk string reply](../topics/protocol.md#bulk-strings): the value of the key after the increment."
   ],
   "INFO": [
-    "[Bulk string reply](../topics/protocol.md#bulk-strings): a map of info fields, one field per line in the form of `<field>:<value>` where the value can be a comma separated map like `<key>=<val>`. Also contains section header lines starting with `#` and blank lines.",
+    "[Verbatim string reply](../topics/protocol.md#verbatim-strings): a map of info fields, one field per line in the form of `<field>:<value>` where the value can be a comma separated map like `<key>=<val>`. Also contains section header lines starting with `#` and blank lines.",
     "",
     "Lines can contain a section name (starting with a `#` character) or a property. All the properties are in the form of `field:value` terminated by `\\r\\n`."
+  ],
+  "JSON.ARRAPPEND": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of integers representing the new length of the array at each path.",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path where the value is not an array.",
+    "* If the path is restricted syntax:",
+    "  * [Integer reply](../topics/protocol.md#integers): The array's new length.",
+    "  * [Integer reply](../topics/protocol.md#integers): If multiple array values are selected, the command returns the new length of the last updated array",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the path does not exist.",
+    "  * if the value at the path is not an array (only for restricted syntax).",
+    ""
+  ],
+  "JSON.ARRINDEX": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of integers. Each value is the index of the matching element in the array at the path. The value is -1 if not found.",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path where the value is not an array.",
+    "* If the path is restricted syntax:",
+    "  * [Integer reply](../topics/protocol.md#integers): The index of matching element, or -1 if not found.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the path does not exist.",
+    "  * if the value at the path is not an array (only for restricted syntax).",
+    ""
+  ],
+  "JSON.ARRINSERT": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of integers representing the new length of the array at each path.",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path where the value is an empty array or not an array.",
+    "* If the path is restricted syntax:",
+    "  * [Integer reply](../topics/protocol.md#integers): The new length of the array.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the path does not exist.",
+    "  * if the value at the path is not an array (only for restricted syntax).",
+    "  * if the index argument is out of bounds.",
+    ""
+  ],
+  "JSON.ARRLEN": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of integers representing the array length at each path.",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path where the value is not an array.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the document key does not exist.",
+    "* If the path is restricted syntax:",
+    "  * [Integer reply](../topics/protocol.md#integers): The array length.",
+    "  * [Integer reply](../topics/protocol.md#integers): If multiple objects are selected, returns the first array's length.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the document key does not exist.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the path does not exist.",
+    "  * if the value at the path is not an array (only for restricted syntax).",
+    ""
+  ],
+  "JSON.ARRPOP": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of bulk strings representing popped values at each path.",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path where the value is an empty array or not an array.",
+    "* If the path is restricted syntax:",
+    "  * [Bulk string reply](../topics/protocol.md#bulk-strings): The popped JSON value.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the array is empty.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the value at the path is not an array (only for restricted syntax).",
+    ""
+  ],
+  "JSON.ARRTRIM": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of integers representing the new length of the array at each path.",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path where the value is an empty array or not an array.",
+    "* If the path is restricted syntax:",
+    "  * [Integer reply](../topics/protocol.md#integers): The new length of the array.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the array is empty.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the value at the path is not an array (only for restricted syntax).",
+    "  * if an index argument is out of bounds.",
+    ""
+  ],
+  "JSON.CLEAR": [
+    "* [Integer reply](../topics/protocol.md#integers):",
+    "  * The number of containers cleared.",
+    "  * Returns 0 if clearing an empty array or object.",
+    "  * Returns 0 if clearing a non-container value.",
+    "  * Returns 0 if no array or object value is located by the path.",
+    ""
+  ],
+  "JSON.DEBUG": [
+    "Command response depends on the subcommand:",
+    "* For MEMORY:",
+    "  * If the path is enhanced syntax:",
+    "    * [Array reply](../topics/protocol.md#arrays): Array of integers representing memory size (in bytes) of JSON value at each path.",
+    "    * [Array reply](../topics/protocol.md#arrays): Empty array if the Valkey key does not exist.",
+    "  * If the path is restricted syntax:",
+    "    * [Integer reply](../topics/protocol.md#integers): Memory size of the JSON value in bytes.",
+    "    * [Null reply](../topics/protocol.md#nulls): If the Valkey key does not exist.",
+    "* For DEPTH:",
+    "  * [Integer reply](../topics/protocol.md#integers): The maximum path depth of the JSON document.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the Valkey key does not exist.",
+    "* For FIELDS:",
+    "  * If the path is enhanced syntax:",
+    "    * [Array reply](../topics/protocol.md#arrays): Array of integers representing number of fields of JSON value at each path.",
+    "    * [Array reply](../topics/protocol.md#arrays): Empty array if the Valkey key does not exist.",
+    "  * If the path is restricted syntax:",
+    "    * [Integer reply](../topics/protocol.md#integers): Number of fields of the JSON value.",
+    "    * [Null reply](../topics/protocol.md#nulls): If the Valkey key does not exist.",
+    "* For HELP:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of help messages.",
+    ""
+  ],
+  "JSON.DEL": [
+    "* [Integer reply](../topics/protocol.md#integers):",
+    "  * The number of elements deleted.",
+    "  * Returns 0 if the Valkey key does not exist.",
+    "  * Returns 0 if the JSON path is invalid or does not exist.",
+    ""
+  ],
+  "JSON.GET": [
+    "* For enhanced path syntax:",
+    "  * If one path is given:",
+    "    * [Bulk string reply](../topics/protocol.md#bulk-strings): Serialized string of an array of values.",
+    "    * [Array reply](../topics/protocol.md#arrays): Empty array if no value is selected.",
+    "  * If multiple paths are given:",
+    "    * [Bulk string reply](../topics/protocol.md#bulk-strings): Stringified JSON object, where each path is a key.",
+    "    * Result conforms to enhanced syntax if there are mixed enhanced and restricted path syntax.",
+    "    * [Array reply](../topics/protocol.md#arrays): Empty array for paths that do not exist.",
+    "* For restricted path syntax:",
+    "  * If one path is given:",
+    "    * [Bulk string reply](../topics/protocol.md#bulk-strings): Serialized string of the value at the path.",
+    "    * [Bulk string reply](../topics/protocol.md#bulk-strings): First value if multiple values are selected.",
+    "    * [Simple error reply](../topics/protocol.md#simple-errors): If the path does not exist.",
+    "  * If multiple paths are given:",
+    "    * [Bulk string reply](../topics/protocol.md#bulk-strings): Stringified JSON object, where each path is a key.",
+    "    * Result conforms to restricted syntax only if all paths are restricted.",
+    "    * [Simple error reply](../topics/protocol.md#simple-errors): If any path does not exist.",
+    ""
+  ],
+  "JSON.MGET": [
+    "* [Array reply](../topics/protocol.md#arrays): Array of Bulk Strings with size equal to the number of keys in the command.",
+    "  * Each element is either:",
+    "    * [Bulk string reply](../topics/protocol.md#bulk-strings): Serialized JSON as located by the path.",
+    "    * [Null reply](../topics/protocol.md#nulls): If the key does not exist, the path does not exist in the document, or the path is invalid.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors): WRONGTYPE error if any specified key exists but is not a JSON key.",
+    ""
+  ],
+  "JSON.MSET": [
+    "* [Simple string reply](../topics/protocol.md#simple-strings): 'OK' if the operation was successful.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors): If the operation failed.",
+    ""
+  ],
+  "JSON.NUMINCRBY": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of bulk strings representing the resulting value at each path.",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path where the value is not a number.",
+    "* If the path is restricted syntax:",
+    "  * [Bulk string reply](../topics/protocol.md#bulk-strings): The resulting value.",
+    "  * [Bulk string reply](../topics/protocol.md#bulk-strings): If multiple values are selected, returns the result of the last updated value.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the number cannot be parsed.",
+    "  * if the result is out of the range of double.",
+    "  * if the document key does not exist.",
+    "  * if the value at the path is not a number (only for restricted syntax).",
+    ""
+  ],
+  "JSON.NUMMULTBY": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of bulk strings representing the resulting value at each path.",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path where the value is not a number.",
+    "* If the path is restricted syntax:",
+    "  * [Bulk string reply](../topics/protocol.md#bulk-strings): The resulting value.",
+    "  * [Bulk string reply](../topics/protocol.md#bulk-strings): If multiple values are selected, returns the result of the last updated value.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the number cannot be parsed.",
+    "  * if the result is out of the range of double.",
+    "  * if the document key does not exist.",
+    "  * if the value at the path is not a number (only for restricted syntax).",
+    ""
+  ],
+  "JSON.OBJKEYS": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of arrays, each containing bulk strings representing keys in a matching object.",
+    "  * [Array reply](../topics/protocol.md#arrays): Empty array for each path where the value is not an object.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the document key does not exist.",
+    "* If the path is restricted syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of bulk strings, each representing a key name in the object.",
+    "  * [Array reply](../topics/protocol.md#arrays): If multiple objects are selected, returns the keys of the first object.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the document key does not exist.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the value at the path is not an object (only for restricted syntax).",
+    "  * if the path does not exist (only for restricted syntax).",
+    ""
+  ],
+  "JSON.OBJLEN": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of integers representing the object length at each path.",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path where the value is not an object.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the document key does not exist.",
+    "* If the path is restricted syntax:",
+    "  * [Integer reply](../topics/protocol.md#integers): Number of keys in the object.",
+    "  * [Integer reply](../topics/protocol.md#integers): If multiple objects are selected, returns the first object's length.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the document key does not exist.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the value at the path is not an object (only for restricted syntax).",
+    "  * if the path does not exist (only for restricted syntax).",
+    ""
+  ],
+  "JSON.RESP": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of arrays, each representing the RESP form of the value at one path.",
+    "  * [Array reply](../topics/protocol.md#arrays): Empty array if the document key does not exist.",
+    "* If the path is restricted syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Representing the RESP form of the value at the path.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the document key does not exist.",
+    ""
+  ],
+  "JSON.SET": [
+    "* [Simple string reply](../topics/protocol.md#simple-strings): 'OK' on success.",
+    "* [Null reply](../topics/protocol.md#nulls): If the NX or XX condition is not met.",
+    ""
+  ],
+  "JSON.STRAPPEND": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of integers representing the new length of the string at each path.",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path where the value is not a string.",
+    "* If the path is restricted syntax:",
+    "  * [Integer reply](../topics/protocol.md#integers): The string's new length.",
+    "  * [Integer reply](../topics/protocol.md#integers): If multiple string values are selected, returns the new length of the last updated string.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the input json argument is not a valid JSON string.",
+    "  * if the path does not exist.",
+    "  * if the value at the path is not a string (only for restricted syntax).",
+    ""
+  ],
+  "JSON.STRLEN": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of integers representing the length of string value at each path.",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path where the value is not a string.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the document key does not exist.",
+    "* If the path is restricted syntax:",
+    "  * [Integer reply](../topics/protocol.md#integers): The string's length.",
+    "  * [Integer reply](../topics/protocol.md#integers): If multiple string values are selected, returns the first string's length.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the document key does not exist.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the value at the path is not a string (only for restricted syntax).",
+    "  * if the path does not exist (only for restricted syntax).",
+    ""
+  ],
+  "JSON.TOGGLE": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of integers (0 for false, 1 for true) representing the resulting boolean value at each path.",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path where the value is not a boolean.",
+    "* If the path is restricted syntax:",
+    "  * [Bulk string reply](../topics/protocol.md#bulk-strings): 'true' or 'false' representing the resulting boolean value.",
+    "* [Simple error reply](../topics/protocol.md#simple-errors):",
+    "  * if the document key does not exist.",
+    "  * if the value at the path is not a boolean (only for restricted syntax).",
+    ""
+  ],
+  "JSON.TYPE": [
+    "* If the path is enhanced syntax:",
+    "  * [Array reply](../topics/protocol.md#arrays): Array of strings representing type of the value at each path (one of: 'null', 'boolean', 'string', 'number', 'integer', 'object', 'array').",
+    "  * [Null reply](../topics/protocol.md#nulls): For each path that does not exist.",
+    "  * [Array reply](../topics/protocol.md#arrays): Empty array if the document key does not exist.",
+    "* If the path is restricted syntax:",
+    "  * [Bulk string reply](../topics/protocol.md#bulk-strings): Type of the value.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the document key does not exist.",
+    "  * [Null reply](../topics/protocol.md#nulls): If the JSON path is invalid or does not exist.",
+    ""
   ],
   "KEYS": [
     "[Array reply](../topics/protocol.md#arrays): a list of keys matching _pattern_."
@@ -625,7 +1032,7 @@
     "[Verbatim string reply](../topics/protocol.md#verbatim-strings): a human readable latency analysis report."
   ],
   "LATENCY GRAPH": [
-    "[Bulk string reply](../topics/protocol.md#bulk-strings): Latency graph"
+    "[Verbatim string reply](../topics/protocol.md#verbatim-strings): Latency graph"
   ],
   "LATENCY HELP": [
     "[Array reply](../topics/protocol.md#arrays): a list of sub-commands and their descriptions."
@@ -711,7 +1118,7 @@
     "[Array reply](../topics/protocol.md#arrays): a list of sub-commands and their descriptions."
   ],
   "MEMORY MALLOC-STATS": [
-    "[Bulk string reply](../topics/protocol.md#bulk-strings): the memory allocator's internal statistics report."
+    "[Verbatim string reply](../topics/protocol.md#verbatim-strings): the memory allocator's internal statistics report."
   ],
   "MEMORY PURGE": [
     "[Simple string reply](../topics/protocol.md#simple-strings): `OK`."
@@ -756,10 +1163,15 @@
   "MOVE": [
     "One of the following:",
     "* [Integer reply](../topics/protocol.md#integers): `1` if _key_ was moved.",
-    "* [Integer reply](../topics/protocol.md#integers): `0` if _key_ wasn't moved."
+    "* [Integer reply](../topics/protocol.md#integers): `0` if _key_ already exists in the destination database, or it does not exist in the source database."
   ],
   "MSET": [
     "[Simple string reply](../topics/protocol.md#simple-strings): always `OK` because `MSET` can't fail."
+  ],
+  "MSETEX": [
+    "One of the following:",
+    "* [Integer reply](../topics/protocol.md#integers): `0` if no key was set (at least one key already existed when `NX` was used, or at least one key didn't exist when `XX` was used).",
+    "* [Integer reply](../topics/protocol.md#integers): `1` if all the keys were set."
   ],
   "MSETNX": [
     "One of the following:",
@@ -1003,12 +1415,6 @@
     "[Array reply](../topics/protocol.md#arrays): This is actually a map, the odd entries are a primary name, and the even entries are the last cached INFO output from that primary and all its replicas."
   ],
   "SENTINEL IS PRIMARY-DOWN-BY-ADDR": [],
-  "SENTINEL PRIMARY": [
-    "[Map reply](../topics/protocol.md#maps): The state and info of the specified primary."
-  ],
-  "SENTINEL PRIMARIES": [
-    "[Array reply](../topics/protocol.md#arrays): List of monitored Valkey primaries, and their state."
-  ],
   "SENTINEL MONITOR": [
     "[Simple string reply](../topics/protocol.md#simple-strings): `OK`."
   ],
@@ -1017,6 +1423,12 @@
   ],
   "SENTINEL PENDING SCRIPTS": [
     "[Array reply](../topics/protocol.md#arrays): List of pending scripts."
+  ],
+  "SENTINEL PRIMARIES": [
+    "[Array reply](../topics/protocol.md#arrays): List of monitored Valkey primaries, and their state."
+  ],
+  "SENTINEL PRIMARY": [
+    "[Map reply](../topics/protocol.md#maps): The state and info of the specified primary."
   ],
   "SENTINEL REMOVE": [
     "[Simple string reply](../topics/protocol.md#simple-strings): `OK`."
@@ -1341,7 +1753,7 @@
     "[Array reply](../topics/protocol.md#arrays): when the additional _count_ argument is passed, the command returns an array of members, or an empty array when _key_ doesn't exist. If the _WITHSCORES_ modifier is used, the reply is a list of members and their scores from the sorted set."
   ],
   "ZRANGE": [
-    "[Array reply](../topics/protocol.md#arrays): a list of members in the specified range with, optionally, their scores when the _WITHSCORES_ option is given."
+    "[Array reply](../topics/protocol.md#arrays): a list of members in the specified range with, optionally, their scores when the _WITHSCORES_ option is given. When _WITHSCORES_ is used, each entry is a 2-element array containing the member and its score as a [Double reply](../topics/protocol.md#doubles)."
   ],
   "ZRANGEBYLEX": [
     "[Array reply](../topics/protocol.md#arrays): a list of elements in the specified score range."

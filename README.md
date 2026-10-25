@@ -7,12 +7,16 @@ for generating content for the website and man pages.
 
 This repo comes with a Makefile to build and install man pages.
 
-    make VALKEY_ROOT=path/to/valkey
-    sudo make install INSTALL_MAN_DIR=/usr/local/share/man
+```bash
+make VALKEY_ROOT=path/to/valkey VALKEY_BLOOM_ROOT=path/to/valkey-bloom              \
+     VALKEY_JSON_ROOT=path/to/valkey-json VALKEY_SEARCH_ROOT=path/to/valkey-search  \
+sudo make install INSTALL_MAN_DIR=/usr/local/share/man
+```
 
 Prerequisites: GNU Make, Python 3, Python 3 YAML (pyyaml), Pandoc.
 Additionally, the scripts need access to the valkey code repo,
-where metadata files about the commands are stored.
+where metadata files about the commands are stored. Additionally,
+access to `valkey-bloom`, `valkey-json` and `valkey-search` repos is optional.
 
 The pages are generated under `_build/man/` by default. The default install
 location is `/usr/local/share/man` (in the appropriate subdirectories).
@@ -50,9 +54,28 @@ lines of three dashes (`---`). These are YAML fields of which we use only the
 `title` field (and possibly `linkTitle`). The title field is used instead of an
 H1 heading in each of the pages.
 
+#### Module API Reference
+
+The Module API reference page (`topics/modules-api-ref.md`) is **auto-generated** from doc comments in `src/module.c` in the [Valkey core repository](https://github.com/valkey-io/valkey) using `utils/generate-module-api-doc.rb`.
+
+**Do not edit `topics/modules-api-ref.md` directly.** Any modifications to the Module API documentation must be made to the doc comments in `src/module.c` in `valkey-io/valkey`.
+
+**Release-only updates**: This file is updated automatically as part of the release process when a new Valkey version is published (matching `VERSION` in `Makefile`). Do not open PRs to sync `topics/modules-api-ref.md` from `unstable` ahead of a release, as intermediate `unstable` changes will cause CI verification to fail when subsequent commits land on `unstable`.
+
+To regenerate or verify the documentation against a local Valkey checkout:
+
+```bash
+# Regenerate topics/modules-api-ref.md
+make generate-modules-api-ref VALKEY_ROOT=path/to/valkey
+
+# Verify topics/modules-api-ref.md matches src/module.c
+make verify-modules-api-ref VALKEY_ROOT=path/to/valkey
+```
+
+
 ### Clients, modules, libraries, tools
 
-We maintain links to clients, modules, libraries and tools in various langauges in
+We maintain links to clients, modules, libraries and tools in various languages in
 JSON files stored under `clients/`, `modules/`, `libraries/` and `tools/`
 respectively.
 
@@ -65,7 +88,7 @@ The path follows the pattern: ``clients/{language}/{repository}.json``.
 The ``{language}`` component of the path is the path-safe representation
 of the full language name which is mapped in [languages.json](./languages.json).
 
-Each client's JSON object represents the details displayed on the [clients documentation page](https://valkey.io/clients/), which are also detailed in [clients/README.md](clients/README.md). 
+Each client's JSON object represents the details displayed on the [clients documentation page](https://valkey.io/clients/), which are also detailed in [clients/README.md](clients/README.md).
 
 For example [clients/go/valkey-go.json](./clients/go/valkey-go.json):
 
