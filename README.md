@@ -75,32 +75,12 @@ make verify-modules-api-ref VALKEY_ROOT=path/to/valkey
 
 ### Clients, modules, libraries, tools
 
-We maintain links to clients, modules, libraries and tools in various languages in
-JSON files stored under `clients/`, `modules/`, `libraries/` and `tools/`
+The [clients page](https://valkey.io/clients/) is built from `_data/libraries/clients/` in the [website repo](https://github.com/valkey-io/valkey-io.github.io).
+To add or update a client, open a pull request there using the [add library template](https://github.com/valkey-io/valkey-io.github.io/blob/main/.github/PULL_REQUEST_TEMPLATE/add_library.md).
+
+We maintain links to modules, libraries and tools in various languages in
+JSON files stored under `modules/`, `libraries/` and `tools/`
 respectively.
-
-**Note**:  Clients listed here, while fully compatible with Valkey, are not all official clients for Valkey.
-They are maintained by their original developers.
-
-All clients are listed under language specific sub-folders of [clients](./clients)
-
-The path follows the pattern: ``clients/{language}/{repository}.json``.
-The ``{language}`` component of the path is the path-safe representation
-of the full language name which is mapped in [languages.json](./languages.json).
-
-Each client's JSON object represents the details displayed on the [clients documentation page](https://valkey.io/clients/), which are also detailed in [clients/README.md](clients/README.md).
-
-For example [clients/go/valkey-go.json](./clients/go/valkey-go.json):
-
-```json
-{
-    "name": "valkey-go",
-    "description": "A fast Golang Valkey client that supports Client Side Caching and Auto Pipelining.",
-    "recommended": true
-}
-```
-
-Modules, libraries and tools follow a similar structure under their respective directories.
 
 ### Commands
 
